@@ -40,7 +40,7 @@ namespace SolutionScan {
 				expandProjectsFolder(p, pros);
 
 			foreach (var p in pros) {
-				//WriteLine($@"project: {p.Name}");
+				WriteLine($@"project: {p.Name}");
 				var vsp = p.Object as VSProject2;
 				//printReferences(vsp);
 				vpros.Add(vsp);
@@ -74,17 +74,19 @@ namespace SolutionScan {
 
 		#region Scanning
 		private static bool expandProjectsFolder(Project p, List<Project> pros) {
-			if(!isSolutionFolder(p)) { pros.Add(p); return false; }
+			if(isProject(p)) { pros.Add(p); return false; }
 			for (int i = 1; i < p.ProjectItems.Count; i++) {
-				var sp = p.ProjectItems.Item(i) as Project;
+				var sp = p.ProjectItems.Item(i).Object as Project;
 				if (sp == null) continue;
-				expandProjectsFolder(p, pros);
+				expandProjectsFolder(sp, pros);
 			}
 			return true;
 		}
 
-		private static bool isSolutionFolder(Project p) {
-			return p.Kind == "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
+		private static bool isProject(Project p) {
+			//var pn = p.Name; 
+			return p.Kind == "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}";
+			//return p.Kind == "{66A26720-8FB5-11D2-AA7E-00C04F688DDE}";
 
 		}
 		#endregion
