@@ -185,6 +185,11 @@ namespace SolutionScan {
 			return ls;
 		}
 
+		public RefTree<T> getDeepestReference() {
+			if (!c.ContainsKey(i)) return null;
+			return c[i];
+		}
+
 		public RefTree<T> subOf(T i) {
 			foreach (var sr in subs)
 				if (sr.i.Equals(i)) return sr;

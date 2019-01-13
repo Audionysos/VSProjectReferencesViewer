@@ -30,9 +30,10 @@ namespace SolutionNodes.gui {
 			set {
 				if (rt) throw new Exception("Resetting reference tree is not suppored");
 				rt = value;
-				displayRefTree(rt);
+				displayTree(rt);
+				showConnections();
 			}
-		} 
+		}
 
 		private NetworkViewModel net;
 
@@ -45,51 +46,22 @@ namespace SolutionNodes.gui {
 
 		private Dictionary<RefTree<Project>, RefContext> nodes = new Dictionary<RefTree<Project>, RefContext>();
 
-		/// <summary></summary>
-		/// <param name="rt">Referenc tree node</param>
-		/// <param name="cx">Current positon on X-Axis.</param>
-		/// <param name="cn">Child count on current level (sum from all parent nodes).</param>
-		/// <param name="ii">Inital index for the node at current level.</param>
-		/// <param name="ln">Longest node (in characters count</param>
-		private void displayRefTree(RefTree<Project> rt, double cx = 0, int cn = -1, int ii = 0, double ln = 0) {
-			if (rt.subs.Count == 0) return;
-			if (cn < 0) cn = rt.allOnLevel()?.Count??0;
-
-			if (ln == 0) ln = rt.i.Name.Length;
-			var nw = nodeSize.w * ln + emptyNodeWidth; //node width
-			var nh = nodeSize.h;
-			var tw = cn * nw; //total width
-			var th = cn * nh; //total width
-			var spc = size.w - tw; //remaining space
-			var left = (size.w - tw) / 2;
-			var top = (size.h - th) / 2;
-			cn = 0; //reset child count for next level
-
-			var s = ii;
-			var tn = (rt.data as RefContext)?.node; //model assigned by parent
-			if (tn == null) { //first node
-				rt.data = createRefContext(rt).node;
-				tn = rt.data as NodeViewModel;
-				tn.Position = new Point(nw + cx, (size.h - nh) / 2);
+		private void displayTree(RefTree<Project> rt) {
+			var cl = rt.d; var rol = rt.allOnLevel(cl);
+			var cx = 0d; var ln = 0;
+			while (rol != null) {
+				var nw = nodeSize.w * ln + emptyNodeWidth; //node width
+				var nh = nodeSize.h;
+				var th = rol.Count * nh; //total height
+				var top = (size.h - th) / 2;
 				cx += nw;
-			}
 
-			foreach (var r in rt.subs) {
-				if (r.d != rt.d + 1) continue;
-				var nc = createRefContext(r);
-				if (!nc) continue;
-				connect(tn, nc.node);
-				nc.node.Position = new Point(nw + cx, top + nh * s);
-				cn += r.allOnLevel()?.Count ?? 0;
-				s++;
-			}
-
-			ln = rt.allOnLevel()?.Max(r => r.i.Name.Length)??0; //longest node name
-			ii = 0;
-			foreach (var r in rt.subs) {
-				if (r.d != rt.d + 1) continue;
-				displayRefTree(r, cx + nw, -1, ii, ln);
-				ii += r.subsOnLevel().Count;
+				var i = 0; foreach (var r in rol) {
+					var nc = createRefContext(r);
+					nc.node.Position = new Point(cx, top + nh * i++);
+				}
+				ln = rol.Max(sr => sr.i.Name.Length);
+				rol = rt.allOnLevel(++cl);
 			}
 		}
 
@@ -98,10 +70,13 @@ namespace SolutionNodes.gui {
 			net.Connections.Clear();
 			foreach (var nc in nodes.Values) {
 				//clearConnections(nc.node);
-				foreach (var r in nc.reff.subs) {
-					var rn = nodes[r];
-					connect(nc.node, rn.node);
-				}
+				var rn = nc.reff.getDeepestReference(); //referenced node;
+				if(rn) connect(nodes[rn].node, nc.node);
+
+				//foreach (var r in nc.reff.subs) {
+					//var rn = nodes[r];
+					//connect(nc.node, rn.node);
+				//}
 			}
 		}
 
