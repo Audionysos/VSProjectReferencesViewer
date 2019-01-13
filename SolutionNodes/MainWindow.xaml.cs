@@ -1,6 +1,8 @@
 ﻿using EnvDTE;
 using SolutionNodes.gui;
 using SolutionScan;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using P = SolutionScan.Program;
 
@@ -36,7 +38,7 @@ namespace SolutionNodes {
 			Title = $@"{sets.projectName} project reference tree";
 			ns = new ProjectsNodesView(sets.viewSize.w, sets.viewSize.h);
 			ns.nodeSize = (sets.nodeSize.w, sets.nodeSize.h);
-			Content = ns.view;
+			mainGrid.Children.Insert(0, ns.view);
 			var rt = getProjectReferences();
 			if (!rt) { Close(); return; }
 			ns.refTree = rt;
@@ -58,7 +60,23 @@ namespace SolutionNodes {
 						ImageSaver.asPNG(ns.view, sets.projectName + "References");
 				}
 			};
+			connVisButt.Click += (s, e) => {
+				alternate(connVisButt,
+					"Show all references",
+					"Show deepest references only");
+				if ((string)connVisButt.Content == "Show all references")
+					ns.displayMeth = ConnectionsVisibility.Deepest;
+				else ns.displayMeth = ConnectionsVisibility.All;
+			};
 		}
+
+		#region Helper methods
+		public static T alternate<T>(T e, string s1, string s2) where T : FrameworkElement {
+			if (e is Label l) l.Content = (string)l.Content == s1 ? s2 : s1;
+			else if (e is Button b) b.Content = (string)b.Content == s1 ? s2 : s1;
+			return e;
+		}
+		#endregion
 
 	}
 
@@ -73,4 +91,5 @@ namespace SolutionNodes {
 		public (double w, double h) nodeSize = (10, 150);
 
 	}
+
 }

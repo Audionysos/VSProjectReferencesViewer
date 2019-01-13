@@ -7,7 +7,9 @@
 		xmlns:nodenetwork="clr-namespace:NodeNetwork.Views;assembly=NodeNetwork"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
-		
+	<Grid x:Name="mainGrid">
+		<Button x:Name="connVisButt"
+				VerticalAlignment="Top"
+				HorizontalAlignment="Right">Show all references</Button>
 	</Grid>
 </Window>

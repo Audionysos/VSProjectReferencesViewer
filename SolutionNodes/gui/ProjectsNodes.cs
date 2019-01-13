@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using static SolutionNodes.gui.ConnectionsVisibility;
 
 namespace SolutionNodes.gui {
 	public class ProjectsNodesView {
@@ -22,6 +23,16 @@ namespace SolutionNodes.gui {
 		public double emptyNodeWidth = 100; 
 		/// <summary>Outer WPF element</summary>
 		public NetworkView view { get; }
+
+
+		private ConnectionsVisibility _dispMeth = Deepest;
+		public ConnectionsVisibility displayMeth {
+			get => _dispMeth;
+			set {
+				_dispMeth = value;
+				showConnections();
+			}
+		}
 
 		private RefTree<Project> rt;
 		/// <summary>Projects reference tree to be displayed.</summary>
@@ -42,7 +53,9 @@ namespace SolutionNodes.gui {
 			net = new NetworkViewModel();
 			view = new NetworkView();
 			view.ViewModel = net;
+			setDisplayMethods();
 		}
+
 
 		private Dictionary<RefTree<Project>, RefContext> nodes = new Dictionary<RefTree<Project>, RefContext>();
 
@@ -66,19 +79,42 @@ namespace SolutionNodes.gui {
 		}
 
 		#region Connections
+
 		public void showConnections() {
 			net.Connections.Clear();
-			foreach (var nc in nodes.Values) {
-				//clearConnections(nc.node);
-				var rn = nc.reff.getDeepestReference(); //referenced node;
-				if(rn) connect(nodes[rn].node, nc.node);
+			displayMethods[displayMeth]();
+		}
 
-				//foreach (var r in nc.reff.subs) {
-					//var rn = nodes[r];
-					//connect(nc.node, rn.node);
-				//}
+		private Dictionary<ConnectionsVisibility, Action> displayMethods;
+		private void setDisplayMethods() {
+			displayMethods = new Dictionary<ConnectionsVisibility, Action>() {
+				{ Deepest, showDeepestConnections },
+				{ All, showAllConnections },
+				{ Custom, showCustomConnections },
+			};
+		}
+
+
+		private void showDeepestConnections() {
+			foreach (var nc in nodes.Values) {
+				var rn = nc.reff.getDeepestReference(); //referenced node;
+				if (rn) connect(nodes[rn].node, nc.node);
 			}
 		}
+
+		private void showAllConnections() {
+			foreach (var nc in nodes.Values)
+				foreach (var r in nc.reff.subs)
+					connect(nc.node, nodes[r].node);
+		}
+
+		private void showCustomConnections() {
+			showDeepestConnections();
+			//foreach (var nc in nodes.Values) {
+			//	nc.
+			//}
+		}
+		
 
 		private void clearConnections(NodeViewModel n) {
 			foreach (var i in n.Inputs) {
@@ -136,6 +172,12 @@ namespace SolutionNodes.gui {
 
 
 		public static implicit operator bool(ProjectsNodesView n) => n!=null;
+	}
+
+	public enum ConnectionsVisibility {
+		Deepest,
+		All,
+		Custom
 	}
 
 	public class RefContext {

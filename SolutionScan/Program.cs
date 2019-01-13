@@ -50,7 +50,7 @@ namespace SolutionScan {
 		public static RefTree<Project> getProjectReferences(string name) {
 			var p = getProject(name);
 			if (p == null) {
-				if (ide != null) WriteLine($@"Couldn't find project named ""{name}"" in current solution.");
+				if (ide != null) WriteLine($@"Couldn't find project named ""{name}"" in ""{solutionName}"" solution.");
 				return null;
 			}
 			RefTree<Project>.toString = (r) => r.i.Name;
