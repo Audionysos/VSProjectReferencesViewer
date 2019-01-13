@@ -43,13 +43,17 @@ namespace SolutionNodes.gui {
 			view.ViewModel = net;
 		}
 
+		private Dictionary<RefTree<Project>, RefContext> nodes = new Dictionary<RefTree<Project>, RefContext>();
+
 		/// <summary></summary>
 		/// <param name="rt">Referenc tree node</param>
 		/// <param name="cx">Current positon on X-Axis.</param>
 		/// <param name="cn">Child count on current level (sum from all parent nodes).</param>
+		/// <param name="ii">Inital index for the node at current level.</param>
+		/// <param name="ln">Longest node (in characters count</param>
 		private void displayRefTree(RefTree<Project> rt, double cx = 0, int cn = -1, int ii = 0, double ln = 0) {
 			if (rt.subs.Count == 0) return;
-			if (cn < 0) cn = rt.subs.Count;
+			if (cn < 0) cn = rt.allOnLevel()?.Count??0;
 
 			if (ln == 0) ln = rt.i.Name.Length;
 			var nw = nodeSize.w * ln + emptyNodeWidth; //node width
@@ -62,36 +66,80 @@ namespace SolutionNodes.gui {
 			cn = 0; //reset child count for next level
 
 			var s = ii;
-			var tn = rt.data as NodeViewModel; //model assigned by parent
-			if (rt.data == null) { //first node
-				rt.data = createNode(rt);
+			var tn = (rt.data as RefContext)?.node; //model assigned by parent
+			if (tn == null) { //first node
+				rt.data = createRefContext(rt).node;
 				tn = rt.data as NodeViewModel;
 				tn.Position = new Point(nw + cx, (size.h - nh) / 2);
 				cx += nw;
 			}
 
 			foreach (var r in rt.subs) {
-				var n = createNode(r);
-				if (n == null) continue;
-				r.data = n;
-				var c = new ConnectionViewModel(net,
-					n.Inputs[0], tn.Outputs[0]);
-				net.Connections.Add(c);
-				n.Position = new Point(nw + cx, top + nh * s);
-				cn += r.subs.Count;
+				if (r.d != rt.d + 1) continue;
+				var nc = createRefContext(r);
+				if (!nc) continue;
+				connect(tn, nc.node);
+				nc.node.Position = new Point(nw + cx, top + nh * s);
+				cn += r.allOnLevel()?.Count ?? 0;
 				s++;
 			}
 
-			ln = rt.subs.Max(r => r.i.Name.Length); //longest node name
+			ln = rt.allOnLevel()?.Max(r => r.i.Name.Length)??0; //longest node name
 			ii = 0;
 			foreach (var r in rt.subs) {
-				displayRefTree(r, cx + nw, cn, ii, ln);
-				ii += r.subs.Count;
+				if (r.d != rt.d + 1) continue;
+				displayRefTree(r, cx + nw, -1, ii, ln);
+				ii += r.subsOnLevel().Count;
 			}
 		}
 
+		#region Connections
+		public void showConnections() {
+			net.Connections.Clear();
+			foreach (var nc in nodes.Values) {
+				//clearConnections(nc.node);
+				foreach (var r in nc.reff.subs) {
+					var rn = nodes[r];
+					connect(nc.node, rn.node);
+				}
+			}
+		}
+
+		private void clearConnections(NodeViewModel n) {
+			foreach (var i in n.Inputs) {
+				while (i.Connections.Count > 0) {
+					net.Connections.Remove(i.Connections[0]);
+				}
+			}
+		}
+
+		private void connect(NodeViewModel tn, NodeViewModel n) {
+			var c = new ConnectionViewModel(net,
+					n.Inputs[0], tn.Outputs[0]);
+			net.Connections.Add(c);
+		}
+		#endregion
+
+		/// <summary>Returns new context only when node was not already created, othwerwise null.</summary>
+		/// <param name="r"></param>
+		/// <returns></returns>
+		public RefContext createRefContext(RefTree<Project> r) {
+			if (nodes.ContainsKey(r)) return null;
+			return getRefContext(r);
+		}
+
+		private RefContext getRefContext(RefTree<Project> r) {
+			if (nodes.ContainsKey(r)) return nodes[r];
+			var nc = new RefContext() {
+				node = createNode(r),
+				reff = r,
+			};
+			r.data = nc;
+			nodes.Add(r, nc);
+			return nc;
+		}
+
 		private NodeViewModel createNode(RefTree<Project> r) {
-			if (!r) return null;
 			var n = new NodeViewModel();
 			n.Name = r.i.Name;
 			//n.IsCollapsed = true;
@@ -114,4 +162,17 @@ namespace SolutionNodes.gui {
 
 		public static implicit operator bool(ProjectsNodesView n) => n!=null;
 	}
+
+	public class RefContext {
+		public NodeViewModel node;
+		public RefTree<Project> reff;
+
+		public override string ToString() {
+			return reff?.ToString()??base.ToString();
+		}
+
+		public static implicit operator bool(RefContext c) => c!=null;
+	}
+
+
 }

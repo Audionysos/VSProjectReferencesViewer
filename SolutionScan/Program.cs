@@ -118,29 +118,43 @@ namespace SolutionScan {
 		public Func<T, IEnumerable<T>> t;
 		/// <summary>Arbitrary additional data.</summary>
 		public object data;
+		/// <summary>Depth level for this node</summary>
+		public int d { get; private set; } = 0;
 
 		/// <summary>Stores parent node that recferences givne node of T.</summary>
 		private Dictionary<T, RefTree<T>> c;
-		private int d = 0;
+		private HashSet<RefTree<T>> all;
 
 		public RefTree(T i, Func<T, IEnumerable<T>> t){
 			this.i = i;
 			this.t = t;
 			c = new Dictionary<T, RefTree<T>>();
-			add(t(i));
 			//fill();
+			all = new HashSet<RefTree<T>>();
+			all.Add(this);
+			add(t(i));
+		}
+
+		private RefTree(T i, RefTree<T> r, Func<T, IEnumerable<T>> t, int d) {
+			this.i = i;
+			this.t = t;
+			this.d = d;
+			this.all = r.all;
+			c = r.c;
+			all.Add(this);
+			add(t(i));
 		}
 
 		public void add(T i) {
 			var ap = (i as Project)?.Name;
 			if (c.ContainsKey(i)) {
-				var r = c[i]; RefTree<T> tr = null;
-				if (r.d > d) return;
-				foreach (var sr in r.subs) if (sr.i.Equals(i)) tr = sr;
+				var r = c[i]; //parent of refTree containing the i
+				RefTree<T> tr = r.subOf(i); //refTree containing the i
 				Debug.Assert(tr != null, "Value suppose to contain i");
-				r.subs.Remove(tr);
-				r.d = d + 1;
 				subs.Add(tr);
+				if (r.d > d)  return; //do steal parent if it is deeper in tree.
+				//r.subs.Remove(tr);
+				tr.d = d + 1;
 				c[i] = this;
 				return;
 			}
@@ -154,12 +168,27 @@ namespace SolutionScan {
 			//foreach (var s in subs) s.fill();
 		}
 
-		private RefTree(T i, RefTree<T> r, Func<T, IEnumerable<T>> t, int d) {
-			this.i = i;
-			this.t = t;
-			this.d = d;
-			c = r.c;
-			add(t(i));
+		/// <summary>Returns only direct sub nodes that are on specified level.</summary>
+		/// <param name="d">Depth level - negative value will retrun subs on level next to this node level.</param>
+		public List<RefTree<T>> subsOnLevel(int d = -1) {
+			if (d < 0) d = this.d + 1;
+			var ls = new List<RefTree<T>>();
+			foreach (var s in subs) if (s.d == d) ls.Add(s);
+			return ls;
+		}
+
+		public List<RefTree<T>> allOnLevel(int d = -1) {
+			if (d < 0) d = this.d + 1;
+			var ls = new List<RefTree<T>>();
+			foreach (var s in all) if (s.d == d) ls.Add(s);
+			if (ls.Count == 0) return null;
+			return ls;
+		}
+
+		public RefTree<T> subOf(T i) {
+			foreach (var sr in subs)
+				if (sr.i.Equals(i)) return sr;
+			return null;
 		}
 
 		private void fill() {
@@ -168,7 +197,7 @@ namespace SolutionScan {
 		}
 
 		public override string ToString() {
-			return toString?.Invoke(this)??base.ToString();
+			return (toString?.Invoke(this)??base.ToString())+$"({d})";
 		}
 
 		public static implicit operator bool(RefTree<T> r) => r!=null;
