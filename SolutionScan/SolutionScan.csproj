@@ -77,6 +77,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\EmptyProject2\EmptyProject2.csproj">
+      <Project>{b6c0b6a4-442f-4a83-bc88-380414d3701c}</Project>
+      <Name>EmptyProject2</Name>
+    </ProjectReference>
     <ProjectReference Include="..\EmptyProject\EmptyProject.csproj">
       <Project>{0a905e75-ba75-4dec-8edf-fc835ea27d4d}</Project>
       <Name>EmptyProject</Name>

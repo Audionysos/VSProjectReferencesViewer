@@ -3,7 +3,7 @@ using EnvDTE80;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+//using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using VSLangProj;
@@ -30,12 +30,17 @@ namespace SolutionScan {
 			var vs = VisualStudioAttacher.getVSForSolutions(
 				new List<string> { solutionName });
 			ide = vs as DTE2;
-			var items = ide.Solution.Projects;
-			foreach (Project p in items) {
-				expandProjectsFolder(p, pros);
+			if(ide == null) {
+				WriteLine($@"Couldn't get visual studio instance running ""{solutionName}"" solution.");
+				return;
 			}
+
+			var items = ide.Solution.Projects;
+			foreach (Project p in items)
+				expandProjectsFolder(p, pros);
+
 			foreach (var p in pros) {
-				WriteLine($@"project: {p.Name}");
+				//WriteLine($@"project: {p.Name}");
 				var vsp = p.Object as VSProject2;
 				//printReferences(vsp);
 				vpros.Add(vsp);
@@ -44,9 +49,12 @@ namespace SolutionScan {
 
 		public static RefTree<Project> getProjectReferences(string name) {
 			var p = getProject(name);
-			if (p == null) return null;
-			var rt = new RefTree<Project>(p, i => i.projectReferences());
+			if (p == null) {
+				if (ide != null) WriteLine($@"Couldn't find project named ""{name}"" in current solution.");
+				return null;
+			}
 			RefTree<Project>.toString = (r) => r.i.Name;
+			var rt = new RefTree<Project>(p, i => i.projectReferences());
 			return rt;
 		}
 
@@ -100,28 +108,47 @@ namespace SolutionScan {
 
 	public class RefTree<T> {
 		public static Func<RefTree<T>, string> toString;
-
+		/// <summary>Item holded in this node.</summary>
 		public T i;
-		public Dictionary<T, RefTree<T>> c;
+		/// <summary>List of sub items for this node.</summary>
 		public HashSet<RefTree<T>> subs = new HashSet<RefTree<T>>();
+		///// <summary>List of parent items for this node.</summary>
+		//public HashSet<RefTree<T>> parents = new HashSet<RefTree<T>>();
+
 		public Func<T, IEnumerable<T>> t;
+		/// <summary>Arbitrary additional data.</summary>
 		public object data;
+
+		/// <summary>Stores parent node that recferences givne node of T.</summary>
+		private Dictionary<T, RefTree<T>> c;
 
 		public RefTree(T i, Func<T, IEnumerable<T>> t){
 			this.i = i;
 			this.t = t;
 			c = new Dictionary<T, RefTree<T>>();
 			add(t(i));
+			//fill();
 		}
 
 		public void add(T i) {
-			if (c.ContainsKey(i)) return;
-			else c.Add(i, this);
-			subs.Add(new RefTree<T>(i, this, t));
+			var ap = (i as Project)?.Name;
+			if (c.ContainsKey(i)) {
+				var r = c[i]; RefTree<T> tr = null;
+				foreach (var sr in r.subs) if (sr.i.Equals(i)) tr = sr;
+				Debug.Assert(tr != null, "Value suppose to contain i");
+				r.subs.Remove(tr);
+				subs.Add(tr);
+				c[i] = this;
+				return;
+			}
+			c.Add(i, this);
+			var nr = new RefTree<T>(i, this, t);
+			subs.Add(nr);
 		}
 
 		public void add(IEnumerable<T> its) {
 			foreach (var i in its) add(i);
+			//foreach (var s in subs) s.fill();
 		}
 
 		private RefTree(T i, RefTree<T> r, Func<T, IEnumerable<T>> t) {
@@ -129,6 +156,11 @@ namespace SolutionScan {
 			this.t = t;
 			c = r.c;
 			add(t(i));
+		}
+
+		private void fill() {
+			add(t(i));
+
 		}
 
 		public override string ToString() {

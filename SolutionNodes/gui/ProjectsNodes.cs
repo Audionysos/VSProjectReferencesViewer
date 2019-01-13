@@ -37,27 +37,33 @@ namespace SolutionNodes.gui {
 		private NetworkViewModel net;
 
 		public ProjectsNodesView(double w, double h) {
-			this.size = size;
+			this.size = (w, h);
 			net = new NetworkViewModel();
 			view = new NetworkView();
 			view.ViewModel = net;
 		}
 
-		private double cx;
-		private void displayRefTree(RefTree<Project> rt) {
+		/// <summary></summary>
+		/// <param name="rt">Referenc tree node</param>
+		/// <param name="cx">Current positon on X-Axis.</param>
+		/// <param name="cn">Child count on current level (sum from all parent nodes).</param>
+		private void displayRefTree(RefTree<Project> rt, double cx = 0, int cn = -1, int ii = 0, double ln = 0) {
 			if (rt.subs.Count == 0) return;
+			if (cn < 0) cn = rt.subs.Count;
 
-			var nw = nodeSize.w * rt.i.Name.Length + emptyNodeWidth; //node width
+			if (ln == 0) ln = rt.i.Name.Length;
+			var nw = nodeSize.w * ln + emptyNodeWidth; //node width
 			var nh = nodeSize.h;
-			var tw = (rt.subs.Count - 0) * nw; //total width
-			var th = (rt.subs.Count - 0) * nh; //total width
+			var tw = cn * nw; //total width
+			var th = cn * nh; //total width
 			var spc = size.w - tw; //remaining space
 			var left = (size.w - tw) / 2;
 			var top = (size.h - th) / 2;
+			cn = 0; //reset child count for next level
 
-			var s = 0;
-			var tn = rt.data as NodeViewModel;
-			if (rt.data == null) {
+			var s = ii;
+			var tn = rt.data as NodeViewModel; //model assigned by parent
+			if (rt.data == null) { //first node
 				rt.data = createNode(rt);
 				tn = rt.data as NodeViewModel;
 				tn.Position = new Point(nw + cx, (size.h - nh) / 2);
@@ -66,18 +72,26 @@ namespace SolutionNodes.gui {
 
 			foreach (var r in rt.subs) {
 				var n = createNode(r);
+				if (n == null) continue;
 				r.data = n;
 				var c = new ConnectionViewModel(net,
 					n.Inputs[0], tn.Outputs[0]);
 				net.Connections.Add(c);
 				n.Position = new Point(nw + cx, top + nh * s);
+				cn += r.subs.Count;
 				s++;
 			}
-			cx+= nw;
-			foreach (var r in rt.subs) displayRefTree(r);
+
+			ln = rt.subs.Max(r => r.i.Name.Length); //longest node name
+			ii = 0;
+			foreach (var r in rt.subs) {
+				displayRefTree(r, cx + nw, cn, ii, ln);
+				ii += r.subs.Count;
+			}
 		}
 
 		private NodeViewModel createNode(RefTree<Project> r) {
+			if (!r) return null;
 			var n = new NodeViewModel();
 			n.Name = r.i.Name;
 			//n.IsCollapsed = true;

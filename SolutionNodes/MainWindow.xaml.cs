@@ -12,7 +12,7 @@ namespace SolutionNodes {
 
 		private ProjectsNodesView ns;
 		private ProjectsNodesSettings sets = new ProjectsNodesSettings() {
-			solutionName = "SoundsPlayground.sln",
+			solutionName = "VSProjectReferencesViewer.sln",
 			projectName = "SolutionNodes",
 		};
 
@@ -34,7 +34,9 @@ namespace SolutionNodes {
 			ns = new ProjectsNodesView(sets.viewSize.w, sets.viewSize.h);
 			ns.nodeSize = (sets.nodeSize.w, sets.nodeSize.h);
 			Content = ns.view;
-			ns.refTree = getProjectReferences();
+			var rt = getProjectReferences();
+			if (!rt) { Close(); return; }
+			ns.refTree = rt;
 
 		}
 
@@ -46,11 +48,11 @@ namespace SolutionNodes {
 		}
 
 		private void setupContols() {
-			if (!ns) return;
 			PreviewKeyUp += (s, e) => {
+				if (!ns) return;
 				if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) {
 					if(e.Key == Key.S)
-						ImageSaver.asPNG(ns.view, sets.solutionName);
+						ImageSaver.asPNG(ns.view, sets.projectName + "References");
 				}
 			};
 		}
