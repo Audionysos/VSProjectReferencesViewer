@@ -2,7 +2,7 @@ This is simple utility for displaying Visual Studio project-projects dependencie
 
 It was written to quickly figure out which nuget packages should be published and in what order as I didn't found any free option to do this.
 
-![](.\doc\preview.png)
+![](./doc/preview.png)
 
 #### The program will
 
