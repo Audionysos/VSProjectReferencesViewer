@@ -121,6 +121,7 @@ namespace SolutionScan {
 
 		/// <summary>Stores parent node that recferences givne node of T.</summary>
 		private Dictionary<T, RefTree<T>> c;
+		private int d = 0;
 
 		public RefTree(T i, Func<T, IEnumerable<T>> t){
 			this.i = i;
@@ -134,15 +135,17 @@ namespace SolutionScan {
 			var ap = (i as Project)?.Name;
 			if (c.ContainsKey(i)) {
 				var r = c[i]; RefTree<T> tr = null;
+				if (r.d > d) return;
 				foreach (var sr in r.subs) if (sr.i.Equals(i)) tr = sr;
 				Debug.Assert(tr != null, "Value suppose to contain i");
 				r.subs.Remove(tr);
+				r.d = d + 1;
 				subs.Add(tr);
 				c[i] = this;
 				return;
 			}
 			c.Add(i, this);
-			var nr = new RefTree<T>(i, this, t);
+			var nr = new RefTree<T>(i, this, t, d+1);
 			subs.Add(nr);
 		}
 
@@ -151,9 +154,10 @@ namespace SolutionScan {
 			//foreach (var s in subs) s.fill();
 		}
 
-		private RefTree(T i, RefTree<T> r, Func<T, IEnumerable<T>> t) {
+		private RefTree(T i, RefTree<T> r, Func<T, IEnumerable<T>> t, int d) {
 			this.i = i;
 			this.t = t;
+			this.d = d;
 			c = r.c;
 			add(t(i));
 		}

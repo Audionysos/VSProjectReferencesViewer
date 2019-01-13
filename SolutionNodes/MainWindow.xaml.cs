@@ -12,8 +12,10 @@ namespace SolutionNodes {
 
 		private ProjectsNodesView ns;
 		private ProjectsNodesSettings sets = new ProjectsNodesSettings() {
-			solutionName = "VSProjectReferencesViewer.sln",
-			projectName = "SolutionNodes",
+			//solutionName = "VSProjectReferencesViewer.sln",
+			//projectName = "SolutionNodes",
+			projectName = "DFMCExe",
+			solutionName = "DFM.sln",
 		};
 
 		public MainWindow() {
