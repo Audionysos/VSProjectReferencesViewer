@@ -1,6 +1,7 @@
 ﻿using EnvDTE;
 using SolutionNodes.gui;
 using SolutionScan;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -38,11 +39,19 @@ namespace SolutionNodes {
 			Title = $@"{sets.projectName} project reference tree";
 			ns = new ProjectsNodesView(sets.viewSize.w, sets.viewSize.h);
 			ns.nodeSize = (sets.nodeSize.w, sets.nodeSize.h);
+			ns.SHOW_PROJECT_REQUEST += onProjectShowRequest;
 			mainGrid.Children.Insert(0, ns.view);
 			var rt = getProjectReferences();
 			if (!rt) { Close(); return; }
 			ns.refTree = rt;
 
+		}
+
+		private void onProjectShowRequest(string name) {
+			var c = sets.copy(); sets.projectName = name;
+			var nw = new MainWindow(sets);
+			//nw.Show(); //TODO: somehow projects "X" and "A" could not be found in solution.
+			//Turns out getProjectReferences() dont work for all projects that are placed in solution - folder.
 		}
 
 		private RefTree<Project> getProjectReferences() {
@@ -89,6 +98,14 @@ namespace SolutionNodes {
 
 		public (double w, double h) viewSize = (800, 600);
 		public (double w, double h) nodeSize = (10, 150);
+
+		public ProjectsNodesSettings copy() {
+			var fs = this.GetType().GetFields();
+			var c = new ProjectsNodesSettings();
+			foreach (var f in fs)
+				f.SetValue(c, f.GetValue(this));
+			return c;
+		}
 
 	}
 

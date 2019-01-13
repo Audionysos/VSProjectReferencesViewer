@@ -196,10 +196,12 @@ namespace SolutionScan {
 			return null;
 		}
 
-		private void fill() {
-			add(t(i));
-
+		/// <summary>Perform action on each node in the tree</summary>
+		/// <param name="a"></param>
+		public void withEach(Action<RefTree<T>> a) {
+			foreach (var r in all) a(r);
 		}
+
 
 		public override string ToString() {
 			return (toString?.Invoke(this)??base.ToString())+$"({d})";

@@ -1,6 +1,7 @@
 ﻿using EnvDTE;
 using NodeNetwork.ViewModels;
 using NodeNetwork.Views;
+using ReactiveUI;
 using SolutionScan;
 using System;
 using System.Collections.Generic;
@@ -9,10 +10,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+//using System.Windows.Controls;
+using System.Windows.Media;
 using static SolutionNodes.gui.ConnectionsVisibility;
 
 namespace SolutionNodes.gui {
 	public class ProjectsNodesView {
+		public event Action<string> SHOW_PROJECT_REQUEST;
 
 		/// <summary>Size of view (specifed in consturctor). This is only used for layout purposes.</summary>
 		public (double w, double h) size { get; }
@@ -47,6 +52,7 @@ namespace SolutionNodes.gui {
 		}
 
 		private NetworkViewModel net;
+		public NetworkViewModel network => net;
 
 		public ProjectsNodesView(double w, double h) {
 			this.size = (w, h);
@@ -71,6 +77,7 @@ namespace SolutionNodes.gui {
 
 				var i = 0; foreach (var r in rol) {
 					var nc = createRefContext(r);
+					if (cl == 0) nc.node.BackColor = Colors.DarkOliveGreen;
 					nc.node.Position = new Point(cx, top + nh * i++);
 				}
 				ln = rol.Max(sr => sr.i.Name.Length);
@@ -131,6 +138,33 @@ namespace SolutionNodes.gui {
 		}
 		#endregion
 
+		#region Highlighting
+		public void resetHighlights() {
+			foreach (var n in nodes.Values) {
+				if (n.reff.d == 0) n.node.BackColor = Colors.DarkOliveGreen;
+				else n.node.BackColor = Colors.RoyalBlue;
+			}
+		}
+
+		public void highlightReferencingNodes(RefTree<Project> r) {
+			resetHighlights();
+			r.withEach(i => {
+				if (i.subs.Contains(r))
+					nodes[i].node.BackColor = Colors.LightBlue;
+			});
+		}
+
+		public void highlightReferencedNodes(RefTree<Project> r) {
+			resetHighlights();
+			foreach (var sr in r.subs)
+				nodes[sr].node.BackColor = Colors.Orange;
+		}
+		#endregion
+
+		public void requestShow(RefTree<Project> r) {
+			SHOW_PROJECT_REQUEST?.Invoke(r.i.Name);
+		}
+
 		/// <summary>Returns new context only when node was not already created, othwerwise null.</summary>
 		/// <param name="r"></param>
 		/// <returns></returns>
@@ -145,14 +179,17 @@ namespace SolutionNodes.gui {
 				node = createNode(r),
 				reff = r,
 			};
+			nc.node.context = nc;
 			r.data = nc;
 			nodes.Add(r, nc);
 			return nc;
 		}
 
-		private NodeViewModel createNode(RefTree<Project> r) {
-			var n = new NodeViewModel();
+		private CustomNodeViewModel createNode(RefTree<Project> r) {
+			var n = new CustomNodeViewModel();
+			n.nodes = this;
 			n.Name = r.i.Name;
+			//n.BackColor = Colors.DarkOliveGreen;
 			//n.IsCollapsed = true;
 			net.Nodes.Add(n);
 
@@ -181,7 +218,7 @@ namespace SolutionNodes.gui {
 	}
 
 	public class RefContext {
-		public NodeViewModel node;
+		public CustomNodeViewModel node;
 		public RefTree<Project> reff;
 
 		public override string ToString() {
@@ -190,6 +227,10 @@ namespace SolutionNodes.gui {
 
 		public static implicit operator bool(RefContext c) => c!=null;
 	}
+
+
+
+
 
 
 }
