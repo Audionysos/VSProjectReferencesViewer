@@ -71,6 +71,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RefTree.cs" />
     <Compile Include="VisualStudioAttacher.cs" />
   </ItemGroup>
   <ItemGroup>
